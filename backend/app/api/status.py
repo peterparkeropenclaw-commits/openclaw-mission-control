@@ -120,7 +120,7 @@ def _parse_iso(value: str) -> datetime:
 
 
 def _effective_status(current: Status, timestamp: datetime) -> Status:
-    if datetime.now(timezone.utc) - timestamp > timedelta(seconds=DEFAULT_EXPECTED_INTERVAL_SECONDS * STALE_MULTIPLIER):
+    if datetime.now(timezone.utc) - timestamp.replace(tzinfo=timezone.utc) > timedelta(seconds=DEFAULT_EXPECTED_INTERVAL_SECONDS * STALE_MULTIPLIER):
         return "down"
     return current
 

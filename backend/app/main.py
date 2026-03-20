@@ -27,6 +27,7 @@ from app.api.metrics import router as metrics_router
 from app.api.organizations import router as organizations_router
 from app.api.skills_marketplace import router as skills_marketplace_router
 from app.api.souls_directory import router as souls_directory_router
+from app.api.status import router as status_router
 from app.api.tags import router as tags_router
 from app.api.task_custom_fields import router as task_custom_fields_router
 from app.api.tasks import router as tasks_router
@@ -559,6 +560,7 @@ api_v1.include_router(task_custom_fields_router)
 api_v1.include_router(tags_router)
 api_v1.include_router(users_router)
 app.include_router(api_v1)
+app.include_router(status_router)
 
 add_pagination(app)
 logger.debug("app.routes.registered count=%s", len(app.routes))

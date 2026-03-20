@@ -2,10 +2,10 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd backend && pip install uv && uv sync --no-dev"
+    "buildCommand": "curl -LsSf https://astral.sh/uv/install.sh | bash && . $HOME/.local/bin/env && cd backend && uv sync --no-dev"
   },
   "deploy": {
-    "startCommand": "cd backend && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "startCommand": ". $HOME/.local/bin/env && cd backend && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000",
     "restartPolicyType": "ON_FAILURE"
   }
 }

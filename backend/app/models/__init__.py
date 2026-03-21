@@ -20,6 +20,7 @@ from app.models.organization_members import OrganizationMember
 from app.models.organizations import Organization
 from app.models.skills import GatewayInstalledSkill, MarketplaceSkill, SkillPack
 from app.models.status_heartbeat import StatusHeartbeat
+from app.models.dispatch_task import DispatchTask
 from app.models.tag_assignments import TagAssignment
 from app.models.tags import Tag
 from app.models.task_custom_fields import (
@@ -49,6 +50,7 @@ __all__ = [
     "MarketplaceSkill",
     "SkillPack",
     "StatusHeartbeat",
+    "DispatchTask",
     "Organization",
     "BoardTaskCustomField",
     "TaskCustomFieldDefinition",

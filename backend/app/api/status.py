@@ -105,7 +105,7 @@ SERVICES = [
 FLOWS = [
     FlowStatus(id="mission-control-login", name="Mission Control login", status="unknown"),
     FlowStatus(id="optilyst-homepage", name="Optilyst homepage", status="unknown"),
-    FlowStatus(id="optilyst-results-page", name="Optilyst results page", status="unknown"),
+    FlowStatus(id="optilyst-results", name="Optilyst results page", status="unknown"),
     FlowStatus(id="stripe-checkout", name="Stripe checkout", status="unknown"),
     FlowStatus(id="warm-lead-scrape", name="Warm lead scrape", status="unknown"),
     FlowStatus(id="approval-queue", name="Approval queue", status="unknown"),

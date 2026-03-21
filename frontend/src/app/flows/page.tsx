@@ -25,7 +25,7 @@ export default function FlowsPage() {
   });
 
   return (
-    <DashboardPageLayout title="Flows" description="Critical flow health view." isAdmin={isAdmin} stickyHeader>
+    <DashboardPageLayout title="Flows" description="Critical flow health view." isAdmin={isAdmin} stickyHeader signedOut={{ message: "Sign in to view flows.", forceRedirectUrl: "/flows" }}>
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm overflow-x-auto">
         <table className="w-full text-sm"><thead className="text-left text-slate-500"><tr><th>Name</th><th>Status</th><th>Last Checked</th></tr></thead><tbody>{(query.data ?? []).map((f) => <tr key={f.id} className="border-t border-slate-100"><td className="py-2">{f.name}</td><td><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${badgeClass(f.status)}`}>{f.status}</span></td><td>{f.last_checked_at ?? "—"}</td></tr>)}</tbody></table>
       </div>

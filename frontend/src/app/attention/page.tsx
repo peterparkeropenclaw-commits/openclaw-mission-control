@@ -27,7 +27,7 @@ export default function AttentionPage() {
   });
 
   return (
-    <DashboardPageLayout title="Attention" description="Only degraded, down, or misconfigured items." isAdmin={isAdmin} stickyHeader>
+    <DashboardPageLayout title="Attention" description="Only degraded, down, or misconfigured items." isAdmin={isAdmin} stickyHeader signedOut={{ message: "Sign in to view attention items.", forceRedirectUrl: "/attention" }}>
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         {query.data?.count ? (
           <div className="space-y-2">

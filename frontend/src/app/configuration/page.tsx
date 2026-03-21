@@ -13,7 +13,7 @@ export default function ConfigurationPage() {
   const { isAdmin } = useOrganizationMembership(isSignedIn);
 
   return (
-    <DashboardPageLayout title="Configuration" description="Runtime client configuration." isAdmin={isAdmin} stickyHeader>
+    <DashboardPageLayout title="Configuration" description="Runtime client configuration." isAdmin={isAdmin} stickyHeader signedOut={{ message: "Sign in to view configuration.", forceRedirectUrl: "/configuration" }}>
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
           <div className="flex justify-between gap-3 px-3 py-2 text-sm"><span className="text-slate-500">Auth mode</span><span className="font-medium text-slate-800">{authMode}</span></div>

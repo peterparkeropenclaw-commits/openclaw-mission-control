@@ -220,7 +220,7 @@ async def post_status_heartbeat(payload: HeartbeatPayload, session: AsyncSession
             .where(DispatchTask.owner == owner)
             .where(DispatchTask.status == "new")
             .order_by(priority_order, DispatchTask.created_at.asc())
-            .limit(3)
+            .limit(1)
         )
         queued = (await session.exec(stmt)).all()
         now = datetime.now(timezone.utc)

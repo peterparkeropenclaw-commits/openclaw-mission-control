@@ -216,7 +216,7 @@ async def get_status_services(session: AsyncSession = Depends(get_session)) -> l
             continue
         items.append(ServiceStatus(
             id=item.id,
-            name=item.name,
+            name=heartbeat.name or item.name,
             status=_effective_status(heartbeat.status, heartbeat.timestamp),
             last_checked_at=heartbeat.timestamp.isoformat(),
             last_error=heartbeat.last_error_message,

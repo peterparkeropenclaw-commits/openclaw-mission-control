@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
@@ -40,6 +41,7 @@ from app.core.rate_limit_backend import RateLimitBackend
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.db.session import init_db
 from app.schemas.health import HealthStatusResponse
+from app.services.service_health import poll_services_forever
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -445,10 +447,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         logger.info("app.lifecycle.rate_limit backend=redis")
     else:
         logger.info("app.lifecycle.rate_limit backend=memory")
+    service_health_task = asyncio.create_task(poll_services_forever())
     logger.info("app.lifecycle.started")
     try:
         yield
     finally:
+        service_health_task.cancel()
         logger.info("app.lifecycle.stopped")
 
 

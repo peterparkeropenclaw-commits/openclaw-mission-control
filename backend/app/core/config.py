@@ -86,6 +86,7 @@ class Settings(BaseSettings):
 
     # External service checks
     stripe_secret_key: str = ""
+    apify_api_key: str = ""
 
     # Logging
     log_level: str = "INFO"

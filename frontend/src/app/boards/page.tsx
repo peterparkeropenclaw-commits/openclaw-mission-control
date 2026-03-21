@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
+import { apiFetch } from "@/lib/api-fetch";
 import { useAuth } from "@/auth/clerk";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
 
@@ -95,10 +96,8 @@ export default function TasksPage() {
       if (filterStatus) params.set("status", filterStatus);
       if (filterOwner) params.set("owner", filterOwner);
       if (filterPriority) params.set("priority", filterPriority);
-      const url = `${apiBase}/api/v1/api/tasks${params.toString() ? "?" + params.toString() : ""}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to load tasks");
-      const data: TaskListResponse = await res.json();
+      
+      const data = await apiFetch<TaskListResponse>(params.toString() ? `/api/v1/api/tasks?${params.toString()}` : "/api/v1/api/tasks");
       if (Array.isArray(data)) return data;
       return (data as { items?: DispatchTask[]; tasks?: DispatchTask[] }).items ?? (data as { tasks?: DispatchTask[] }).tasks ?? [];
     },
@@ -109,9 +108,8 @@ export default function TasksPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${apiBase}/api/v1/api/tasks/create`, {
+      const res = await apiFetch<DispatchTask>("/api/v1/api/tasks/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: fTitle.trim(),
           type: fType,
@@ -125,8 +123,7 @@ export default function TasksPage() {
           trigger: fTrigger.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error(`Failed to create task: ${res.status}`);
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       setFTitle(""); setFContext(""); setFCriteria(""); setFTrigger("");

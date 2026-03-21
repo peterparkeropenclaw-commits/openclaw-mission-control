@@ -4,6 +4,10 @@ export const dynamic = "force-dynamic";
 
 import { useQuery } from "@tanstack/react-query";
 
+import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
+import { useAuth } from "@/auth/clerk";
+import { useOrganizationMembership } from "@/lib/use-organization-membership";
+
 type Status = "healthy" | "degraded" | "down" | "unknown" | "misconfigured";
 type OpsMode = "normal" | "product_stability" | "infra_recovery" | "unknown";
 
@@ -71,6 +75,8 @@ async function fetchJson<T>(path: string): Promise<T> {
 function Badge({ status }: { status: Status }) { return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(status)}`}>{status}</span>; }
 
 export default function DashboardPage() {
+  const { isSignedIn } = useAuth();
+  const { isAdmin } = useOrganizationMembership(isSignedIn);
   const refresh = { refetchInterval: 30_000 };
   const opsMode = useQuery({ queryKey: ["ops-mode"], queryFn: () => fetchJson<OpsModeResponse>("/api/status/ops-mode"), ...refresh });
   const overview = useQuery({ queryKey: ["overview"], queryFn: () => fetchJson<Overview>("/api/status/overview"), ...refresh });
@@ -80,9 +86,18 @@ export default function DashboardPage() {
   const flows = useQuery({ queryKey: ["flows"], queryFn: () => fetchJson<FlowStatus[]>("/api/status/flows"), ...refresh });
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="mx-auto max-w-6xl space-y-4">
-        <h1 className="text-2xl font-bold text-slate-900">Mission Control Status Dashboard</h1>
+    <DashboardPageLayout
+      title="Dashboard"
+      description="Mission Control status overview."
+      isAdmin={isAdmin}
+      stickyHeader
+      signedOut={{
+        message: "Sign in to view the dashboard.",
+        forceRedirectUrl: "/dashboard",
+        signUpForceRedirectUrl: "/dashboard",
+      }}
+    >
+      <div className="space-y-4">
 
         <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="mb-3 text-lg font-semibold text-slate-900">Ops Director mode</h2>
@@ -135,6 +150,6 @@ export default function DashboardPage() {
           <table className="w-full text-sm"><thead className="text-left text-slate-500"><tr><th>Name</th><th>Status</th><th>Last Checked</th></tr></thead><tbody>{(flows.data ?? []).map((f) => <tr key={f.id} className="border-t border-slate-100"><td className="py-2">{f.name}</td><td><Badge status={f.status} /></td><td>{f.last_checked_at ?? "—"}</td></tr>)}</tbody></table>
         </section>
       </div>
-    </main>
+    </DashboardPageLayout>
   );
 }

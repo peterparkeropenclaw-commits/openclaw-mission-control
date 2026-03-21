@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
+import { apiFetch } from "@/lib/api-fetch";
 import { useAuth } from "@/auth/clerk";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
 
@@ -50,22 +51,17 @@ export default function BrainDumpPage() {
   const query = useQuery({
     queryKey: ["brain-dump"],
     queryFn: async () => {
-      const res = await fetch(`${apiBase}/api/brain-dump`);
-      if (!res.ok) throw new Error("Failed to load brain dump items");
-      return res.json() as Promise<BrainDumpItem[]>;
+      return apiFetch<BrainDumpItem[]>("/api/brain-dump");
     },
     refetchInterval: 30_000,
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: { title: string; content: string; category: string; priority: string }) => {
-      const res = await fetch(`${apiBase}/api/brain-dump`, {
+      return apiFetch("/api/brain-dump", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to create item");
-      return res.json();
     },
     onSuccess: () => {
       setTitle("");
@@ -84,13 +80,10 @@ export default function BrainDumpPage() {
 
   const assignMutation = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: string }) => {
-      const res = await fetch(`${apiBase}/api/brain-dump/${id}/assign`, {
+      return apiFetch(`/api/brain-dump/${id}/assign`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      if (!res.ok) throw new Error("Failed to assign item");
-      return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["brain-dump"] }),
   });

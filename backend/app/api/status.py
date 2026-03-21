@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Literal, Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel

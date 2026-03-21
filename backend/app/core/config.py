@@ -84,6 +84,10 @@ class Settings(BaseSettings):
     # OpenClaw gateway runtime compatibility
     gateway_min_version: str = "2026.02.9"
 
+    # External service checks
+    stripe_secret_key: str = ""
+    apify_api_key: str = ""
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "text"

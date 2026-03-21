@@ -3,6 +3,7 @@
 from app.models.activity_events import ActivityEvent
 from app.models.agents import Agent
 from app.models.approval_task_links import ApprovalTaskLink
+from app.models.brain_dump import BrainDump
 from app.models.approvals import Approval
 from app.models.board_group_memory import BoardGroupMemory
 from app.models.board_groups import BoardGroup
@@ -18,6 +19,8 @@ from app.models.organization_invites import OrganizationInvite
 from app.models.organization_members import OrganizationMember
 from app.models.organizations import Organization
 from app.models.skills import GatewayInstalledSkill, MarketplaceSkill, SkillPack
+from app.models.status_heartbeat import StatusHeartbeat
+from app.models.dispatch_task import DispatchTask
 from app.models.tag_assignments import TagAssignment
 from app.models.tags import Tag
 from app.models.task_custom_fields import (
@@ -46,6 +49,8 @@ __all__ = [
     "GatewayInstalledSkill",
     "MarketplaceSkill",
     "SkillPack",
+    "StatusHeartbeat",
+    "DispatchTask",
     "Organization",
     "BoardTaskCustomField",
     "TaskCustomFieldDefinition",

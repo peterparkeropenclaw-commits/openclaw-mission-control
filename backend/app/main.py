@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
@@ -21,6 +22,7 @@ from app.api.board_memory import router as board_memory_router
 from app.api.board_onboarding import router as board_onboarding_router
 from app.api.board_webhooks import router as board_webhooks_router
 from app.api.boards import router as boards_router
+from app.api.brain_dump import router as brain_dump_router
 from app.api.gateway import router as gateway_router
 from app.api.gateways import router as gateways_router
 from app.api.metrics import router as metrics_router
@@ -30,6 +32,7 @@ from app.api.souls_directory import router as souls_directory_router
 from app.api.status import router as status_router
 from app.api.tags import router as tags_router
 from app.api.task_custom_fields import router as task_custom_fields_router
+from app.api.task_dispatch import router as task_dispatch_router
 from app.api.tasks import router as tasks_router
 from app.api.users import router as users_router
 from app.core.config import settings
@@ -40,6 +43,8 @@ from app.core.rate_limit_backend import RateLimitBackend
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.db.session import init_db
 from app.schemas.health import HealthStatusResponse
+from app.services.flow_health import poll_flows_forever
+from app.services.service_health import poll_services_forever
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -445,10 +450,14 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         logger.info("app.lifecycle.rate_limit backend=redis")
     else:
         logger.info("app.lifecycle.rate_limit backend=memory")
+    service_health_task = asyncio.create_task(poll_services_forever())
+    flow_health_task = asyncio.create_task(poll_flows_forever())
     logger.info("app.lifecycle.started")
     try:
         yield
     finally:
+        service_health_task.cancel()
+        flow_health_task.cancel()
         logger.info("app.lifecycle.stopped")
 
 
@@ -551,11 +560,13 @@ api_v1.include_router(skills_marketplace_router)
 api_v1.include_router(board_groups_router)
 api_v1.include_router(board_group_memory_router)
 api_v1.include_router(boards_router)
+api_v1.include_router(brain_dump_router)
 api_v1.include_router(board_memory_router)
 api_v1.include_router(board_webhooks_router)
 api_v1.include_router(board_onboarding_router)
 api_v1.include_router(approvals_router)
 api_v1.include_router(tasks_router)
+api_v1.include_router(task_dispatch_router)
 api_v1.include_router(task_custom_fields_router)
 api_v1.include_router(tags_router)
 api_v1.include_router(users_router)

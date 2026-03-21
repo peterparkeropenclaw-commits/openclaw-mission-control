@@ -1,192 +1,103 @@
 "use client";
 
-export const dynamic = "force-dynamic";
+import { useQuery } from "@tanstack/react-query";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-
-import { useAuth } from "@/auth/clerk";
-import { useQueryClient } from "@tanstack/react-query";
-
-import { AgentsTable } from "@/components/agents/AgentsTable";
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
-import { Button } from "@/components/ui/button";
-import { ConfirmActionDialog } from "@/components/ui/confirm-action-dialog";
-
-import { ApiError } from "@/api/mutator";
-import {
-  type listAgentsApiV1AgentsGetResponse,
-  getListAgentsApiV1AgentsGetQueryKey,
-  useDeleteAgentApiV1AgentsAgentIdDelete,
-  useListAgentsApiV1AgentsGet,
-} from "@/api/generated/agents/agents";
-import {
-  type listBoardsApiV1BoardsGetResponse,
-  getListBoardsApiV1BoardsGetQueryKey,
-  useListBoardsApiV1BoardsGet,
-} from "@/api/generated/boards/boards";
-import { type AgentRead } from "@/api/generated/model";
-import { createOptimisticListDeleteMutation } from "@/lib/list-delete";
+import { apiFetch } from "@/lib/api-fetch";
+import { useAuth } from "@/auth/clerk";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
-import { useUrlSorting } from "@/lib/use-url-sorting";
 
-const AGENT_SORTABLE_COLUMNS = [
-  "name",
-  "status",
-  "openclaw_session_id",
-  "board_id",
-  "last_seen_at",
-  "updated_at",
-];
+type Status = "healthy" | "degraded" | "down" | "unknown";
+type AgentStatus = {
+  id: string;
+  name: string;
+  role: string;
+  status: Status;
+  last_heartbeat_at?: string | null;
+  last_task_outcome?: string | null;
+};
+
+const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+
+const badgeClass = (status: Status) =>
+  status === "healthy"
+    ? "bg-emerald-100 text-emerald-700"
+    : status === "degraded"
+      ? "bg-amber-100 text-amber-700"
+      : status === "down"
+        ? "bg-rose-100 text-rose-700"
+        : "bg-slate-200 text-slate-700";
 
 export default function AgentsPage() {
   const { isSignedIn } = useAuth();
-  const queryClient = useQueryClient();
-  const router = useRouter();
-
   const { isAdmin } = useOrganizationMembership(isSignedIn);
-  const { sorting, onSortingChange } = useUrlSorting({
-    allowedColumnIds: AGENT_SORTABLE_COLUMNS,
-    defaultSorting: [{ id: "name", desc: false }],
-    paramPrefix: "agents",
-  });
 
-  const [deleteTarget, setDeleteTarget] = useState<AgentRead | null>(null);
-
-  const boardsKey = getListBoardsApiV1BoardsGetQueryKey();
-  const agentsKey = getListAgentsApiV1AgentsGetQueryKey();
-
-  const boardsQuery = useListBoardsApiV1BoardsGet<
-    listBoardsApiV1BoardsGetResponse,
-    ApiError
-  >(undefined, {
-    query: {
-      enabled: Boolean(isSignedIn && isAdmin),
-      refetchInterval: 30_000,
-      refetchOnMount: "always",
+  const query = useQuery({
+    queryKey: ["agents-status"],
+    queryFn: async () => {
+      const data = await apiFetch("/api/status/agents");
+      return data as AgentStatus[];
     },
+    refetchInterval: 15_000,
   });
-
-  const agentsQuery = useListAgentsApiV1AgentsGet<
-    listAgentsApiV1AgentsGetResponse,
-    ApiError
-  >(undefined, {
-    query: {
-      enabled: Boolean(isSignedIn && isAdmin),
-      refetchInterval: 15_000,
-      refetchOnMount: "always",
-    },
-  });
-
-  const boards = useMemo(
-    () =>
-      boardsQuery.data?.status === 200
-        ? (boardsQuery.data.data.items ?? [])
-        : [],
-    [boardsQuery.data],
-  );
-  const agents = useMemo(
-    () =>
-      agentsQuery.data?.status === 200
-        ? (agentsQuery.data.data.items ?? [])
-        : [],
-    [agentsQuery.data],
-  );
-
-  const deleteMutation = useDeleteAgentApiV1AgentsAgentIdDelete<
-    ApiError,
-    { previous?: listAgentsApiV1AgentsGetResponse }
-  >(
-    {
-      mutation: createOptimisticListDeleteMutation<
-        AgentRead,
-        listAgentsApiV1AgentsGetResponse,
-        { agentId: string }
-      >({
-        queryClient,
-        queryKey: agentsKey,
-        getItemId: (agent) => agent.id,
-        getDeleteId: ({ agentId }) => agentId,
-        onSuccess: () => {
-          setDeleteTarget(null);
-        },
-        invalidateQueryKeys: [agentsKey, boardsKey],
-      }),
-    },
-    queryClient,
-  );
-
-  const handleDelete = () => {
-    if (!deleteTarget) return;
-    deleteMutation.mutate({ agentId: deleteTarget.id });
-  };
 
   return (
-    <>
-      <DashboardPageLayout
-        signedOut={{
-          message: "Sign in to view agents.",
-          forceRedirectUrl: "/agents",
-          signUpForceRedirectUrl: "/agents",
-        }}
-        title="Agents"
-        description={`${agents.length} agent${agents.length === 1 ? "" : "s"} total.`}
-        headerActions={
-          agents.length > 0 ? (
-            <Button onClick={() => router.push("/agents/new")}>
-              New agent
-            </Button>
-          ) : null
-        }
-        isAdmin={isAdmin}
-        adminOnlyMessage="Only organization owners and admins can access agents."
-        stickyHeader
-      >
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <AgentsTable
-            agents={agents}
-            boards={boards}
-            isLoading={agentsQuery.isLoading}
-            sorting={sorting}
-            onSortingChange={onSortingChange}
-            showActions
-            stickyHeader
-            onDelete={setDeleteTarget}
-            emptyState={{
-              title: "No agents yet",
-              description:
-                "Create your first agent to start executing tasks on this board.",
-              actionHref: "/agents/new",
-              actionLabel: "Create your first agent",
-            }}
-          />
-        </div>
-
-        {agentsQuery.error ? (
+    <DashboardPageLayout
+      title="Agents"
+      description="Live agent health view."
+      isAdmin={isAdmin}
+      stickyHeader
+      signedOut={{
+        message: "Sign in to view agents.",
+        forceRedirectUrl: "/agents",
+      }}
+    >
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-left text-slate-500">
+            <tr>
+              <th className="py-2 pr-4">Name</th>
+              <th className="py-2 pr-4">Role</th>
+              <th className="py-2 pr-4">Status</th>
+              <th className="py-2 pr-4">Last Heartbeat</th>
+              <th className="py-2">Last Task</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(query.data ?? []).map((a) => (
+              <tr key={a.id} className="border-t border-slate-100">
+                <td className="py-2 pr-4 font-medium">{a.name}</td>
+                <td className="py-2 pr-4 text-slate-500">{a.role}</td>
+                <td className="py-2 pr-4">
+                  <span
+                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${badgeClass(a.status)}`}
+                  >
+                    {a.status}
+                  </span>
+                </td>
+                <td className="py-2 pr-4 text-slate-500">
+                  {a.last_heartbeat_at ?? "—"}
+                </td>
+                <td className="py-2 text-slate-500">
+                  {a.last_task_outcome ?? "—"}
+                </td>
+              </tr>
+            ))}
+            {query.data?.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-6 text-center text-slate-400">
+                  No agents reporting yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        {query.error && (
           <p className="mt-4 text-sm text-red-500">
-            {agentsQuery.error.message}
+            {(query.error as Error).message}
           </p>
-        ) : null}
-      </DashboardPageLayout>
-
-      <ConfirmActionDialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleteTarget(null);
-          }
-        }}
-        ariaLabel="Delete agent"
-        title="Delete agent"
-        description={
-          <>
-            This will remove {deleteTarget?.name}. This action cannot be undone.
-          </>
-        }
-        errorMessage={deleteMutation.error?.message}
-        onConfirm={handleDelete}
-        isConfirming={deleteMutation.isPending}
-      />
-    </>
+        )}
+      </div>
+    </DashboardPageLayout>
   );
 }

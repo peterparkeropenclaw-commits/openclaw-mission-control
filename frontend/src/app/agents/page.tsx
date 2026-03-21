@@ -47,6 +47,10 @@ export default function AgentsPage() {
       description="Live agent health view."
       isAdmin={isAdmin}
       stickyHeader
+      signedOut={{
+        message: "Sign in to view agents.",
+        forceRedirectUrl: "/agents",
+      }}
     >
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm overflow-x-auto">
         <table className="w-full text-sm">

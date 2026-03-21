@@ -25,7 +25,7 @@ export default function ServicesPage() {
   });
 
   return (
-    <DashboardPageLayout title="Services" description="Live service health view." isAdmin={isAdmin} stickyHeader>
+    <DashboardPageLayout title="Services" description="Live service health view." isAdmin={isAdmin} stickyHeader signedOut={{ message: "Sign in to view services.", forceRedirectUrl: "/services", signUpForceRedirectUrl: "/services" }}>
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm overflow-x-auto">
         <table className="w-full text-sm"><thead className="text-left text-slate-500"><tr><th>Name</th><th>Status</th><th>Last Checked</th></tr></thead><tbody>{(query.data ?? []).map((s) => <tr key={s.id} className="border-t border-slate-100"><td className="py-2">{s.name}</td><td><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${badgeClass(s.status)}`}>{s.status}</span></td><td>{s.last_checked_at ?? "—"}</td></tr>)}</tbody></table>
       </div>

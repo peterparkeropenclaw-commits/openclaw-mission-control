@@ -108,6 +108,11 @@ export default function BrainDumpPage() {
       description="Capture ideas fast. Triage later."
       isAdmin={isAdmin}
       stickyHeader
+      signedOut={{
+        message: "Sign in to use Brain Dump.",
+        forceRedirectUrl: "/brain-dump",
+        signUpForceRedirectUrl: "/brain-dump",
+      }}
     >
       {/* Capture form */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-6">

@@ -41,7 +41,7 @@ def _check_once(flow_id: str, name: str, url: str, expected_codes: set[int], exp
             detail = f"HTTP {code} in {latency}ms"
             if flow_id == "warm-lead-scrape" and settings.apify_api_key and ok:
                 run_req = Request(
-                    "https://api.apify.com/v2/acts/~optilyst-warm-leads/runs/last",
+                    "https://api.apify.com/v2/acts/apidojo~tweet-scraper/runs/last",
                     headers={"Authorization": f"Bearer {settings.apify_api_key}"},
                 )
                 try:

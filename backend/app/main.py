@@ -41,6 +41,7 @@ from app.core.rate_limit_backend import RateLimitBackend
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.db.session import init_db
 from app.schemas.health import HealthStatusResponse
+from app.services.flow_health import poll_flows_forever
 from app.services.service_health import poll_services_forever
 
 if TYPE_CHECKING:
@@ -448,11 +449,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     else:
         logger.info("app.lifecycle.rate_limit backend=memory")
     service_health_task = asyncio.create_task(poll_services_forever())
+    flow_health_task = asyncio.create_task(poll_flows_forever())
     logger.info("app.lifecycle.started")
     try:
         yield
     finally:
         service_health_task.cancel()
+        flow_health_task.cancel()
         logger.info("app.lifecycle.stopped")
 
 

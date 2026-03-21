@@ -225,5 +225,19 @@ async def get_status_services(session: AsyncSession = Depends(get_session)) -> l
 
 
 @router.get("/flows", response_model=list[FlowStatus])
-async def get_status_flows() -> list[FlowStatus]:
-    return FLOWS
+async def get_status_flows(session: AsyncSession = Depends(get_session)) -> list[FlowStatus]:
+    live = await _heartbeat_lookup(session, "flow")
+    items: list[FlowStatus] = []
+    for item in FLOWS:
+        heartbeat = live.get(item.id)
+        if heartbeat is None:
+            items.append(item)
+            continue
+        items.append(FlowStatus(
+            id=item.id,
+            name=heartbeat.name or item.name,
+            status=_effective_status(heartbeat.status, heartbeat.timestamp),
+            last_checked_at=heartbeat.timestamp.isoformat(),
+            last_error=heartbeat.last_error_message,
+        ))
+    return items

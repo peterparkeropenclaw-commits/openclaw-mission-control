@@ -105,7 +105,7 @@ SERVICES = [
 FLOWS = [
     FlowStatus(id="mission-control-login", name="Mission Control login", status="unknown"),
     FlowStatus(id="optilyst-homepage", name="Optilyst homepage", status="unknown"),
-    FlowStatus(id="optilyst-results-page", name="Optilyst results page", status="unknown"),
+    FlowStatus(id="optilyst-results", name="Optilyst results page", status="unknown"),
     FlowStatus(id="stripe-checkout", name="Stripe checkout", status="unknown"),
     FlowStatus(id="warm-lead-scrape", name="Warm lead scrape", status="unknown"),
     FlowStatus(id="approval-queue", name="Approval queue", status="unknown"),
@@ -225,5 +225,19 @@ async def get_status_services(session: AsyncSession = Depends(get_session)) -> l
 
 
 @router.get("/flows", response_model=list[FlowStatus])
-async def get_status_flows() -> list[FlowStatus]:
-    return FLOWS
+async def get_status_flows(session: AsyncSession = Depends(get_session)) -> list[FlowStatus]:
+    live = await _heartbeat_lookup(session, "flow")
+    items: list[FlowStatus] = []
+    for item in FLOWS:
+        heartbeat = live.get(item.id)
+        if heartbeat is None:
+            items.append(item)
+            continue
+        items.append(FlowStatus(
+            id=item.id,
+            name=heartbeat.name or item.name,
+            status=_effective_status(heartbeat.status, heartbeat.timestamp),
+            last_checked_at=heartbeat.timestamp.isoformat(),
+            last_error=heartbeat.last_error_message,
+        ))
+    return items

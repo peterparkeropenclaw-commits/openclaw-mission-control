@@ -20,6 +20,7 @@ class StatusHeartbeat(QueryModel, table=True):
     status: str = Field(default="unknown", index=True)
     timestamp: datetime = Field(index=True)
     latency_ms: int | None = Field(default=None)
+    detail: str | None = Field(default=None, sa_column=Column(Text))
     health: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
     activity: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
     errors: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))

@@ -114,6 +114,8 @@ async def claim_dispatch_task(task_id: UUID, session: AsyncSession = Depends(get
     task = await session.get(DispatchTask, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
+    if task.status != "new":
+        raise HTTPException(status_code=409, detail="Task can only be claimed from new state")
     task.status = "assigned"
     task.assigned_at = datetime.now(timezone.utc)
     task.updated_at = datetime.now(timezone.utc)

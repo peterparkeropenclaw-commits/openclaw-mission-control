@@ -5,10 +5,11 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlmodel import select
+from sqlmodel import case, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.db.session import get_session
+from app.models.dispatch_task import DispatchTask
 from app.models.status_heartbeat import StatusHeartbeat
 
 Status = Literal["healthy", "degraded", "down", "unknown", "misconfigured"]
@@ -102,6 +103,20 @@ class HeartbeatPayload(BaseModel):
     soul: HeartbeatSoul
 
 
+class HeartbeatTask(BaseModel):
+    id: UUID
+    title: str
+    type: str
+    priority: str
+    context: str | None
+    acceptance_criteria: list[str] | None
+
+
+class HeartbeatResponse(BaseModel):
+    ok: bool
+    tasks: list[HeartbeatTask]
+
+
 router = APIRouter(prefix="/api/status", tags=["status"])
 
 AGENTS = [
@@ -144,13 +159,25 @@ def _effective_status(current: Status, timestamp: datetime) -> Status:
     return current
 
 
+def _owner_for_entity(entity_id: str) -> str | None:
+    mapping = {
+        "peter": "peter",
+        "ops-director": "ops_director",
+        "builder": "builder",
+        "reviewer": "reviewer",
+        "research-commercial": "research_commercial",
+        "growth-content": "growth_content",
+    }
+    return mapping.get(entity_id)
+
+
 async def _heartbeat_lookup(session: AsyncSession, entity_type: str) -> dict[str, StatusHeartbeat]:
     rows = (await session.exec(select(StatusHeartbeat).where(StatusHeartbeat.entity_type == entity_type))).all()
     return {row.entity_id: row for row in rows}
 
 
-@router.post("/heartbeat")
-async def post_status_heartbeat(payload: HeartbeatPayload, session: AsyncSession = Depends(get_session)) -> dict[str, bool]:
+@router.post("/heartbeat", response_model=HeartbeatResponse)
+async def post_status_heartbeat(payload: HeartbeatPayload, session: AsyncSession = Depends(get_session)) -> HeartbeatResponse:
     heartbeat = await session.get(StatusHeartbeat, payload.entity_id)
     timestamp = _parse_iso(payload.timestamp)
     if heartbeat is None:
@@ -178,8 +205,43 @@ async def post_status_heartbeat(payload: HeartbeatPayload, session: AsyncSession
         heartbeat.last_error_message = payload.errors.last_error_message
         heartbeat.updated_at = datetime.now(timezone.utc)
     session.add(heartbeat)
+
+    tasks: list[HeartbeatTask] = []
+    owner = _owner_for_entity(payload.entity_id)
+    if owner:
+        priority_order = case(
+            (DispatchTask.priority == "critical", 0),
+            (DispatchTask.priority == "high", 1),
+            (DispatchTask.priority == "medium", 2),
+            else_=3,
+        )
+        stmt = (
+            select(DispatchTask)
+            .where(DispatchTask.owner == owner)
+            .where(DispatchTask.status == "new")
+            .order_by(priority_order, DispatchTask.created_at.asc())
+            .limit(1)
+        )
+        queued = (await session.exec(stmt)).all()
+        now = datetime.now(timezone.utc)
+        for task in queued:
+            task.status = "assigned"
+            task.assigned_at = now
+            task.updated_at = now
+            session.add(task)
+            tasks.append(
+                HeartbeatTask(
+                    id=task.id,
+                    title=task.title,
+                    type=task.type,
+                    priority=task.priority,
+                    context=task.context,
+                    acceptance_criteria=task.acceptance_criteria,
+                )
+            )
+
     await session.commit()
-    return {"ok": True}
+    return HeartbeatResponse(ok=True, tasks=tasks)
 
 
 @router.get("/overview", response_model=Overview)

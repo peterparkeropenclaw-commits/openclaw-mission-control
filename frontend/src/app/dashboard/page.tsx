@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
 import { useAuth } from "@/auth/clerk";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
+import { apiFetch } from "@/lib/api-fetch";
 
 type Status = "healthy" | "degraded" | "down" | "unknown" | "misconfigured";
 type OpsMode = "normal" | "product_stability" | "infra_recovery" | "unknown";
@@ -67,9 +68,7 @@ const modeClass = (mode: OpsMode) => {
 const typeClass = (type: AttentionItem["type"]) => type === "flow" ? "bg-violet-100 text-violet-700" : type === "service" ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-700";
 
 async function fetchJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${apiBase}${path}`);
-  if (!res.ok) throw new Error(`Failed to fetch ${path}`);
-  return res.json() as Promise<T>;
+  return apiFetch<T>(path);
 }
 
 function Badge({ status }: { status: Status }) { return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(status)}`}>{status}</span>; }

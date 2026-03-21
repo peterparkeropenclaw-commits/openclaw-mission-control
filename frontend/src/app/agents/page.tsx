@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
+import { apiFetch } from "@/lib/api-fetch";
 import { useAuth } from "@/auth/clerk";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
 
@@ -34,9 +35,8 @@ export default function AgentsPage() {
   const query = useQuery({
     queryKey: ["agents-status"],
     queryFn: async () => {
-      const res = await fetch(`${apiBase}/api/status/agents`);
-      if (!res.ok) throw new Error("Failed to load agents");
-      return res.json() as Promise<AgentStatus[]>;
+      const data = await apiFetch("/api/status/agents");
+      return data as AgentStatus[];
     },
     refetchInterval: 15_000,
   });

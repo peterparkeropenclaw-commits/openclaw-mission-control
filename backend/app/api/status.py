@@ -52,6 +52,25 @@ class Overview(BaseModel):
     healthy_flows: int
 
 
+class OpsModeResponse(BaseModel):
+    mode: Literal["normal", "product_stability", "infra_recovery", "unknown"]
+    reason: str
+    computed_at: str
+
+
+class AttentionItem(BaseModel):
+    type: Literal["flow", "service", "agent"]
+    id: str
+    name: str
+    status: Literal["degraded", "down", "misconfigured"]
+    detail: str | None
+
+
+class AttentionResponse(BaseModel):
+    items: list[AttentionItem]
+    count: int
+
+
 class HeartbeatHealth(BaseModel):
     env_ok: bool
     auth_ok: bool
@@ -167,11 +186,12 @@ async def post_status_heartbeat(payload: HeartbeatPayload, session: AsyncSession
 async def get_status_overview(session: AsyncSession = Depends(get_session)) -> Overview:
     agents = await get_status_agents(session)
     services = await get_status_services(session)
+    flows = await get_status_flows(session)
     healthy_agents = sum(1 for item in agents if item.status == "healthy")
     healthy_services = sum(1 for item in services if item.status == "healthy")
-    healthy_flows = sum(1 for item in FLOWS if item.status == "healthy")
+    healthy_flows = sum(1 for item in flows if item.status == "healthy")
     overall_status: Status = "healthy" if all(
-        count == total for count, total in ((healthy_agents, len(agents)), (healthy_services, len(services)), (healthy_flows, len(FLOWS)))
+        count == total for count, total in ((healthy_agents, len(agents)), (healthy_services, len(services)), (healthy_flows, len(flows)))
     ) else "unknown"
     return Overview(
         overall_status=overall_status,
@@ -179,7 +199,7 @@ async def get_status_overview(session: AsyncSession = Depends(get_session)) -> O
         healthy_agents=healthy_agents,
         service_count=len(services),
         healthy_services=healthy_services,
-        flow_count=len(FLOWS),
+        flow_count=len(flows),
         healthy_flows=healthy_flows,
     )
 
@@ -238,6 +258,62 @@ async def get_status_flows(session: AsyncSession = Depends(get_session)) -> list
             name=heartbeat.name or item.name,
             status=_effective_status(heartbeat.status, heartbeat.timestamp),
             last_checked_at=heartbeat.timestamp.isoformat(),
-            last_error=heartbeat.last_error_message,
+            last_error=heartbeat.detail or heartbeat.last_error_message,
         ))
     return items
+
+
+@router.get("/ops-mode", response_model=OpsModeResponse)
+async def get_ops_mode(session: AsyncSession = Depends(get_session)) -> OpsModeResponse:
+    agents = await get_status_agents(session)
+    services = await get_status_services(session)
+    flows = await get_status_flows(session)
+
+    bad_flows = [item for item in flows if item.status in {"down", "degraded"}]
+    if bad_flows:
+        return OpsModeResponse(
+            mode="product_stability",
+            reason=f"Critical flow issue: {bad_flows[0].name} is {bad_flows[0].status}",
+            computed_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+    bad_services = [item for item in services if item.status in {"down", "degraded", "misconfigured"}]
+    if bad_services:
+        return OpsModeResponse(
+            mode="infra_recovery",
+            reason=f"Service issue: {bad_services[0].name} is {bad_services[0].status}",
+            computed_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+    if agents and services and flows and all(item.status == "healthy" for item in [*agents, *services, *flows]):
+        return OpsModeResponse(
+            mode="normal",
+            reason="All agents, services, and flows are healthy",
+            computed_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+    return OpsModeResponse(
+        mode="unknown",
+        reason="Not enough healthy telemetry to determine mode",
+        computed_at=datetime.now(timezone.utc).isoformat(),
+    )
+
+
+@router.get("/attention", response_model=AttentionResponse)
+async def get_attention(session: AsyncSession = Depends(get_session)) -> AttentionResponse:
+    agents = await get_status_agents(session)
+    services = await get_status_services(session)
+    flows = await get_status_flows(session)
+    items: list[AttentionItem] = []
+
+    for item in agents:
+        if item.status in {"degraded", "down", "misconfigured"}:
+            items.append(AttentionItem(type="agent", id=item.id, name=item.name, status=item.status, detail=item.last_error))
+    for item in services:
+        if item.status in {"degraded", "down", "misconfigured"}:
+            items.append(AttentionItem(type="service", id=item.id, name=item.name, status=item.status, detail=item.last_error))
+    for item in flows:
+        if item.status in {"degraded", "down", "misconfigured"}:
+            items.append(AttentionItem(type="flow", id=item.id, name=item.name, status=item.status, detail=item.last_error))
+
+    return AttentionResponse(items=items, count=len(items))

@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useQuery } from "@tanstack/react-query";
 
 type Status = "healthy" | "degraded" | "down" | "unknown" | "misconfigured";
+type OpsMode = "normal" | "product_stability" | "infra_recovery" | "unknown";
 
 type AgentStatus = {
   id: string;
@@ -42,6 +43,10 @@ type Overview = {
   healthy_flows: number;
 };
 
+type OpsModeResponse = { mode: OpsMode; reason: string; computed_at: string };
+type AttentionItem = { type: "flow" | "service" | "agent"; id: string; name: string; status: "degraded" | "down" | "misconfigured"; detail: string | null };
+type AttentionResponse = { items: AttentionItem[]; count: number };
+
 const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 const statusClass = (status: Status) => {
   if (status === "healthy") return "bg-emerald-100 text-emerald-700";
@@ -49,6 +54,13 @@ const statusClass = (status: Status) => {
   if (status === "down") return "bg-rose-100 text-rose-700";
   return "bg-slate-200 text-slate-700";
 };
+const modeClass = (mode: OpsMode) => {
+  if (mode === "normal") return "bg-emerald-100 text-emerald-700";
+  if (mode === "product_stability") return "bg-amber-100 text-amber-700";
+  if (mode === "infra_recovery") return "bg-rose-100 text-rose-700";
+  return "bg-slate-200 text-slate-700";
+};
+const typeClass = (type: AttentionItem["type"]) => type === "flow" ? "bg-violet-100 text-violet-700" : type === "service" ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-700";
 
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${apiBase}${path}`);
@@ -56,13 +68,13 @@ async function fetchJson<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-function Badge({ status }: { status: Status }) {
-  return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(status)}`}>{status}</span>;
-}
+function Badge({ status }: { status: Status }) { return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(status)}`}>{status}</span>; }
 
 export default function DashboardPage() {
   const refresh = { refetchInterval: 30_000 };
+  const opsMode = useQuery({ queryKey: ["ops-mode"], queryFn: () => fetchJson<OpsModeResponse>("/api/status/ops-mode"), ...refresh });
   const overview = useQuery({ queryKey: ["overview"], queryFn: () => fetchJson<Overview>("/api/status/overview"), ...refresh });
+  const attention = useQuery({ queryKey: ["attention"], queryFn: () => fetchJson<AttentionResponse>("/api/status/attention"), ...refresh });
   const agents = useQuery({ queryKey: ["agents"], queryFn: () => fetchJson<AgentStatus[]>("/api/status/agents"), ...refresh });
   const services = useQuery({ queryKey: ["services"], queryFn: () => fetchJson<ServiceStatus[]>("/api/status/services"), ...refresh });
   const flows = useQuery({ queryKey: ["flows"], queryFn: () => fetchJson<FlowStatus[]>("/api/status/flows"), ...refresh });
@@ -71,6 +83,16 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="mx-auto max-w-6xl space-y-4">
         <h1 className="text-2xl font-bold text-slate-900">Mission Control Status Dashboard</h1>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900">Ops Director mode</h2>
+          {opsMode.data ? (
+            <div className="space-y-2 text-sm text-slate-700">
+              <div>Current mode: <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${modeClass(opsMode.data.mode)}`}>{opsMode.data.mode}</span></div>
+              <p>{opsMode.data.reason}</p>
+            </div>
+          ) : <p className="text-sm text-slate-500">Loading...</p>}
+        </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="mb-3 text-lg font-semibold text-slate-900">Overview</h2>
@@ -82,6 +104,20 @@ export default function DashboardPage() {
               <div>Flows: {overview.data.healthy_flows}/{overview.data.flow_count} healthy</div>
             </div>
           ) : <p className="text-sm text-slate-500">Loading...</p>}
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900">What needs attention</h2>
+          {attention.data?.count ? (
+            <div className="space-y-2">
+              {attention.data.items.map((item) => (
+                <div key={`${item.type}-${item.id}`} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                  <div className="flex items-center gap-2"><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeClass(item.type)}`}>{item.type}</span><span className="font-medium text-slate-800">{item.name}</span></div>
+                  <Badge status={item.status} />
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-emerald-700">All systems healthy — nothing needs attention</p>}
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

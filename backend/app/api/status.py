@@ -178,33 +178,38 @@ async def _heartbeat_lookup(session: AsyncSession, entity_type: str) -> dict[str
 
 @router.post("/heartbeat", response_model=HeartbeatResponse)
 async def post_status_heartbeat(payload: HeartbeatPayload, session: AsyncSession = Depends(get_session)) -> HeartbeatResponse:
-    heartbeat = await session.get(StatusHeartbeat, payload.entity_id)
-    timestamp = _parse_iso(payload.timestamp)
-    if heartbeat is None:
-        heartbeat = StatusHeartbeat(
-            entity_id=payload.entity_id,
-            entity_type=payload.entity_type,
-            role=payload.role,
-            status=payload.status,
-            timestamp=timestamp,
-            health=payload.health.model_dump(),
-            activity=payload.activity.model_dump(),
-            errors=payload.errors.model_dump(),
-            soul=payload.soul.model_dump(),
-            last_error_message=payload.errors.last_error_message,
-        )
-    else:
-        heartbeat.entity_type = payload.entity_type
-        heartbeat.role = payload.role
-        heartbeat.status = payload.status
-        heartbeat.timestamp = timestamp
-        heartbeat.health = payload.health.model_dump()
-        heartbeat.activity = payload.activity.model_dump()
-        heartbeat.errors = payload.errors.model_dump()
-        heartbeat.soul = payload.soul.model_dump()
-        heartbeat.last_error_message = payload.errors.last_error_message
-        heartbeat.updated_at = datetime.now(timezone.utc)
-    session.add(heartbeat)
+    try:
+        heartbeat = await session.get(StatusHeartbeat, payload.entity_id)
+        timestamp = _parse_iso(payload.timestamp)
+        if heartbeat is None:
+            heartbeat = StatusHeartbeat(
+                entity_id=payload.entity_id,
+                entity_type=payload.entity_type,
+                role=payload.role,
+                status=payload.status,
+                timestamp=timestamp,
+                health=payload.health.model_dump(),
+                activity=payload.activity.model_dump(),
+                errors=payload.errors.model_dump(),
+                soul=payload.soul.model_dump(),
+                last_error_message=payload.errors.last_error_message,
+            )
+        else:
+            heartbeat.entity_type = payload.entity_type
+            heartbeat.role = payload.role
+            heartbeat.status = payload.status
+            heartbeat.timestamp = timestamp
+            heartbeat.health = payload.health.model_dump()
+            heartbeat.activity = payload.activity.model_dump()
+            heartbeat.errors = payload.errors.model_dump()
+            heartbeat.soul = payload.soul.model_dump()
+            heartbeat.last_error_message = payload.errors.last_error_message
+            heartbeat.updated_at = datetime.now(timezone.utc)
+        session.add(heartbeat)
+        await session.flush()
+    except Exception as exc:
+        await session.rollback()
+        print(f"[status.heartbeat] storage warning: {exc}")
 
     tasks: list[HeartbeatTask] = []
     owner = _owner_for_entity(payload.entity_id)

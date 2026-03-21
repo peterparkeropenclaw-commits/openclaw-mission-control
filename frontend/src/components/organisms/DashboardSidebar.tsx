@@ -6,15 +6,15 @@ import {
   Activity,
   BarChart3,
   Bot,
-  Boxes,
   CheckCircle2,
-  Folder,
-  Building2,
   LayoutGrid,
   Network,
   Settings,
-  Store,
-  Tags,
+  Siren,
+  Brain,
+  Workflow,
+  Server,
+  Radio,
 } from "lucide-react";
 
 import { useAuth } from "@/auth/clerk";
@@ -66,188 +66,44 @@ export function DashboardSidebar() {
         <nav className="mt-3 space-y-4 text-sm">
           <div>
             <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              Overview
+              Mission Control
             </p>
             <div className="mt-1 space-y-1">
-              <Link
-                href="/dashboard"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                  pathname === "/dashboard"
-                    ? "bg-blue-100 text-blue-800 font-medium"
-                    : "hover:bg-slate-100",
-                )}
-              >
-                <BarChart3 className="h-4 w-4" />
-                Dashboard
-              </Link>
-              <Link
-                href="/activity"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                  pathname.startsWith("/activity")
-                    ? "bg-blue-100 text-blue-800 font-medium"
-                    : "hover:bg-slate-100",
-                )}
-              >
-                <Activity className="h-4 w-4" />
-                Live feed
-              </Link>
+              <Link href="/dashboard" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname === "/dashboard" ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><BarChart3 className="h-4 w-4" />Dashboard</Link>
+              <Link href="/attention" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/attention") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><Siren className="h-4 w-4" />Attention</Link>
+              <Link href="/live-feed" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/live-feed") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><Activity className="h-4 w-4" />Live Feed</Link>
             </div>
           </div>
 
           <div>
             <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              Boards
+              Work
             </p>
             <div className="mt-1 space-y-1">
-              <Link
-                href="/board-groups"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                  pathname.startsWith("/board-groups")
-                    ? "bg-blue-100 text-blue-800 font-medium"
-                    : "hover:bg-slate-100",
-                )}
-              >
-                <Folder className="h-4 w-4" />
-                Board groups
-              </Link>
-              <Link
-                href="/boards"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                  pathname.startsWith("/boards")
-                    ? "bg-blue-100 text-blue-800 font-medium"
-                    : "hover:bg-slate-100",
-                )}
-              >
-                <LayoutGrid className="h-4 w-4" />
-                Boards
-              </Link>
-              <Link
-                href="/tags"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                  pathname.startsWith("/tags")
-                    ? "bg-blue-100 text-blue-800 font-medium"
-                    : "hover:bg-slate-100",
-                )}
-              >
-                <Tags className="h-4 w-4" />
-                Tags
-              </Link>
-              <Link
-                href="/approvals"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                  pathname.startsWith("/approvals")
-                    ? "bg-blue-100 text-blue-800 font-medium"
-                    : "hover:bg-slate-100",
-                )}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Approvals
-              </Link>
-              {isAdmin ? (
-                <Link
-                  href="/custom-fields"
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                    pathname.startsWith("/custom-fields")
-                      ? "bg-blue-100 text-blue-800 font-medium"
-                      : "hover:bg-slate-100",
-                  )}
-                >
-                  <Settings className="h-4 w-4" />
-                  Custom fields
-                </Link>
-              ) : null}
+              <Link href="/boards" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/boards") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><LayoutGrid className="h-4 w-4" />Tasks</Link>
+              <Link href="/approvals" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/approvals") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><CheckCircle2 className="h-4 w-4" />Approvals</Link>
+              <Link href="/brain-dump" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/brain-dump") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><Brain className="h-4 w-4" />Brain Dump</Link>
             </div>
           </div>
 
           <div>
-            {isAdmin ? (
-              <>
-                <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                  Skills
-                </p>
-                <div className="mt-1 space-y-1">
-                  <Link
-                    href="/skills/marketplace"
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                      pathname === "/skills" ||
-                        pathname.startsWith("/skills/marketplace")
-                        ? "bg-blue-100 text-blue-800 font-medium"
-                        : "hover:bg-slate-100",
-                    )}
-                  >
-                    <Store className="h-4 w-4" />
-                    Marketplace
-                  </Link>
-                  <Link
-                    href="/skills/packs"
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                      pathname.startsWith("/skills/packs")
-                        ? "bg-blue-100 text-blue-800 font-medium"
-                        : "hover:bg-slate-100",
-                    )}
-                  >
-                    <Boxes className="h-4 w-4" />
-                    Packs
-                  </Link>
-                </div>
-              </>
-            ) : null}
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              System
+            </p>
+            <div className="mt-1 space-y-1">
+              {isAdmin ? <Link href="/agents" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/agents") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><Bot className="h-4 w-4" />Agents</Link> : null}
+              <Link href="/services" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/services") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><Server className="h-4 w-4" />Services</Link>
+              <Link href="/flows" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/flows") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><Workflow className="h-4 w-4" />Flows</Link>
+              {isAdmin ? <Link href="/gateways" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/gateways") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><Network className="h-4 w-4" />Gateways</Link> : null}
+            </div>
           </div>
 
           <div>
             <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              Administration
+              Admin
             </p>
             <div className="mt-1 space-y-1">
-              <Link
-                href="/organization"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                  pathname.startsWith("/organization")
-                    ? "bg-blue-100 text-blue-800 font-medium"
-                    : "hover:bg-slate-100",
-                )}
-              >
-                <Building2 className="h-4 w-4" />
-                Organization
-              </Link>
-              {isAdmin ? (
-                <Link
-                  href="/gateways"
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                    pathname.startsWith("/gateways")
-                      ? "bg-blue-100 text-blue-800 font-medium"
-                      : "hover:bg-slate-100",
-                  )}
-                >
-                  <Network className="h-4 w-4" />
-                  Gateways
-                </Link>
-              ) : null}
-              {isAdmin ? (
-                <Link
-                  href="/agents"
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
-                    pathname.startsWith("/agents")
-                      ? "bg-blue-100 text-blue-800 font-medium"
-                      : "hover:bg-slate-100",
-                  )}
-                >
-                  <Bot className="h-4 w-4" />
-                  Agents
-                </Link>
-              ) : null}
+              <Link href="/configuration" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/configuration") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><Settings className="h-4 w-4" />Configuration</Link>
             </div>
           </div>
         </nav>

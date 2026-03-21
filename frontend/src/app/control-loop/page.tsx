@@ -79,7 +79,13 @@ export default function ControlLoopPage() {
   ], [failed.data, escalated.data, retrying.data, review.data, completed.data]);
 
   return (
-    <DashboardPageLayout title="Control Loop" description="Live dispatch visibility across failure, escalation, retry, review and completion states." isAdmin={isAdmin} stickyHeader>
+    <DashboardPageLayout
+      title="Control Loop"
+      description="Live dispatch visibility across failure, escalation, retry, review and completion states."
+      isAdmin={isAdmin}
+      stickyHeader
+      signedOut={{ message: "Sign in to view control loop.", forceRedirectUrl: "/control-loop", signUpForceRedirectUrl: "/control-loop" }}
+    >
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1fr]">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {panels.map((panel) => <Panel key={panel.title} title={panel.title} tasks={panel.data} onSelect={setSelectedTask} />)}

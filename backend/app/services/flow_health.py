@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.db.session import async_session_maker
 from app.models.status_heartbeat import StatusHeartbeat
@@ -20,12 +21,16 @@ FLOWS = [
     ("mission-control-login", "Mission Control login", "https://openclaw-mission-control-production-f6a2.up.railway.app/healthz", {200}, True),
     ("analysis-engine", "Analysis engine", "https://optilyst.io/analyse", {200}, False),
     ("stripe-checkout", "Stripe checkout", "https://optilyst.io/pro", {200}, False),
+    ("warm-lead-scrape", "Warm lead scrape", "https://api.apify.com/v2/acts", {200}, False),
     ("approval-queue", "Approval queue", "https://openclaw-mission-control-production-f6a2.up.railway.app/healthz", {200}, True),
 ]
 
 
 def _check_once(flow_id: str, name: str, url: str, expected_codes: set[int], expect_ok_json: bool) -> tuple[str, int | None, str, str | None]:
-    req = Request(url)
+    headers = {}
+    if flow_id == "warm-lead-scrape" and settings.apify_api_key:
+        headers["Authorization"] = f"Bearer {settings.apify_api_key}"
+    req = Request(url, headers=headers)
     started = time.perf_counter()
     try:
         with urlopen(req, timeout=TIMEOUT_SECONDS) as res:
@@ -34,6 +39,20 @@ def _check_once(flow_id: str, name: str, url: str, expected_codes: set[int], exp
             code = getattr(res, "status", 200)
             ok = code in expected_codes and (not expect_ok_json or '"ok":true' in body.replace(" ", "").lower())
             detail = f"HTTP {code} in {latency}ms"
+            if flow_id == "warm-lead-scrape" and settings.apify_api_key and ok:
+                run_req = Request(
+                    "https://api.apify.com/v2/acts/~optilyst-warm-leads/runs/last",
+                    headers={"Authorization": f"Bearer {settings.apify_api_key}"},
+                )
+                try:
+                    with urlopen(run_req, timeout=TIMEOUT_SECONDS) as run_res:
+                        run_body = run_res.read().decode("utf-8", errors="ignore").lower()
+                        if '"status":"succeeded"' in run_body:
+                            detail = f"Actor reachable, last run succeeded, {latency}ms"
+                        else:
+                            return ("degraded", latency, "Actor reachable but last run not succeeded", "Actor reachable but last run not succeeded")
+                except Exception as run_err:
+                    return ("degraded", latency, f"Actor reachable, last run unknown: {run_err}", f"Actor reachable, last run unknown: {run_err}")
             if ok and latency <= 3000:
                 return ("healthy", latency, detail, None)
             return ("degraded", latency, detail, None if ok else detail)

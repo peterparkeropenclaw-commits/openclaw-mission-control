@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
+import { apiFetch } from "@/lib/api-fetch";
 import { useAuth } from "@/auth/clerk";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
 
@@ -17,9 +18,8 @@ export default function FlowsPage() {
   const query = useQuery({
     queryKey: ["flows"],
     queryFn: async () => {
-      const res = await fetch(`${apiBase}/api/status/flows`);
-      if (!res.ok) throw new Error("Failed to load flows");
-      return res.json() as Promise<FlowStatus[]>;
+      const data = await apiFetch("/api/status/flows");
+      return data as FlowStatus[];
     },
     refetchInterval: 30_000,
   });

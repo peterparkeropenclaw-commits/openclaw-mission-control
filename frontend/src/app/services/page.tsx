@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
+import { apiFetch } from "@/lib/api-fetch";
 import { useAuth } from "@/auth/clerk";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
 
@@ -17,9 +18,8 @@ export default function ServicesPage() {
   const query = useQuery({
     queryKey: ["services"],
     queryFn: async () => {
-      const res = await fetch(`${apiBase}/api/status/services`);
-      if (!res.ok) throw new Error("Failed to load services");
-      return res.json() as Promise<ServiceStatus[]>;
+      const data = await apiFetch("/api/status/services");
+      return data as ServiceStatus[];
     },
     refetchInterval: 30_000,
   });

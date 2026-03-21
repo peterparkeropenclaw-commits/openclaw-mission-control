@@ -15,6 +15,7 @@ import {
   Workflow,
   Server,
   Radio,
+  RefreshCcw,
 } from "lucide-react";
 
 import { useAuth } from "@/auth/clerk";
@@ -72,6 +73,7 @@ export function DashboardSidebar() {
               <Link href="/dashboard" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname === "/dashboard" ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><BarChart3 className="h-4 w-4" />Dashboard</Link>
               <Link href="/attention" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/attention") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><Siren className="h-4 w-4" />Attention</Link>
               <Link href="/live-feed" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/live-feed") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><Activity className="h-4 w-4" />Live Feed</Link>
+              <Link href="/control-loop" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition", pathname.startsWith("/control-loop") ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-slate-100")}><RefreshCcw className="h-4 w-4" />Control Loop</Link>
             </div>
           </div>
 

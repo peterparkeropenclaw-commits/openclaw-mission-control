@@ -72,6 +72,9 @@ async def list_dispatch_tasks(
     status: TaskStatus | None = Query(default=None),
     owner: TaskOwner | None = Query(default=None),
     priority: TaskPriority | None = Query(default=None),
+    source: TaskSource | None = Query(default=None),
+    trigger: str | None = Query(default=None),
+    limit: int | None = Query(default=None, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
 ) -> list[DispatchTask]:
     priority_order = case(
@@ -87,7 +90,13 @@ async def list_dispatch_tasks(
         stmt = stmt.where(DispatchTask.owner == owner)
     if priority is not None:
         stmt = stmt.where(DispatchTask.priority == priority)
+    if source is not None:
+        stmt = stmt.where(DispatchTask.source == source)
+    if trigger is not None:
+        stmt = stmt.where(DispatchTask.trigger == trigger)
     stmt = stmt.order_by(priority_order, DispatchTask.created_at.asc())
+    if limit is not None:
+        stmt = stmt.limit(limit)
     rows = (await session.exec(stmt)).all()
     return list(rows)
 

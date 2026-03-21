@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
+import { apiFetch } from "@/lib/api-fetch";
 import { useAuth } from "@/auth/clerk";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
 
@@ -19,9 +20,8 @@ export default function AttentionPage() {
   const query = useQuery({
     queryKey: ["attention"],
     queryFn: async () => {
-      const res = await fetch(`${apiBase}/api/status/attention`);
-      if (!res.ok) throw new Error("Failed to load attention items");
-      return res.json() as Promise<AttentionResponse>;
+      const data = await apiFetch("/api/status/attention");
+      return data as AttentionResponse;
     },
     refetchInterval: 30_000,
   });

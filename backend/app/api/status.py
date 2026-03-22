@@ -118,6 +118,19 @@ class HeartbeatResponse(BaseModel):
     tasks: list[HeartbeatTask]
 
 
+class AgentActivityItem(BaseModel):
+    id: str
+    name: str
+    status: Status
+    last_heartbeat_at: str | None = None
+    current_task_id: UUID | None = None
+    current_task_title: str | None = None
+    last_task_id: UUID | None = None
+    last_task_title: str | None = None
+    last_task_outcome: Literal["completed", "failed", "blocked"] | None = None
+    last_updated_at: str | None = None
+
+
 router = APIRouter(prefix="/api/status", tags=["status"])
 
 AGENTS = [
@@ -166,6 +179,8 @@ def _owner_for_entity(entity_id: str) -> str | None:
         "ops-director": "ops_director",
         "builder": "builder",
         "reviewer": "reviewer",
+        "coder": "coder",
+        "qa": "qa",
         "research-commercial": "research_commercial",
         "growth-content": "growth_content",
     }
@@ -385,3 +400,54 @@ async def get_attention(session: AsyncSession = Depends(get_session)) -> Attenti
             items.append(AttentionItem(type="flow", id=item.id, name=item.name, status=item.status, detail=item.last_error))
 
     return AttentionResponse(items=items, count=len(items))
+
+
+@router.get("/agent-activity", response_model=list[AgentActivityItem])
+async def get_agent_activity(session: AsyncSession = Depends(get_session)) -> list[AgentActivityItem]:
+    agent_specs = [
+        ("ops-director", "Ops Director"),
+        ("builder", "Builder"),
+        ("reviewer", "Reviewer"),
+        ("coder", "Coder"),
+        ("qa", "QA"),
+        ("peter", "Peter"),
+    ]
+    live = await _heartbeat_lookup(session, "agent")
+    results: list[AgentActivityItem] = []
+
+    for entity_id, name in agent_specs:
+        owner = _owner_for_entity(entity_id)
+        heartbeat = live.get(entity_id)
+        current_task = None
+        last_task = None
+        if owner is not None:
+            current_task = (await session.exec(
+                select(DispatchTask)
+                .where(DispatchTask.owner == owner)
+                .where(DispatchTask.status == "in_progress")
+                .order_by(DispatchTask.updated_at.desc())
+                .limit(1)
+            )).first()
+            last_task = (await session.exec(
+                select(DispatchTask)
+                .where(DispatchTask.owner == owner)
+                .order_by(DispatchTask.updated_at.desc())
+                .limit(1)
+            )).first()
+
+        terminal = last_task.status if last_task and last_task.status in {"completed", "failed", "blocked"} else None
+        status = _effective_status(heartbeat.status, heartbeat.timestamp) if heartbeat else "unknown"
+        results.append(AgentActivityItem(
+            id=entity_id,
+            name=name,
+            status=status,
+            last_heartbeat_at=heartbeat.timestamp.isoformat() if heartbeat else None,
+            current_task_id=current_task.id if current_task else None,
+            current_task_title=current_task.title if current_task else None,
+            last_task_id=last_task.id if last_task else None,
+            last_task_title=last_task.title if last_task else None,
+            last_task_outcome=terminal,
+            last_updated_at=last_task.updated_at.isoformat() if last_task else None,
+        ))
+
+    return results

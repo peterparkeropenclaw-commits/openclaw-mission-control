@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import httpx
+
 from app.core.config import settings
 from app.core.logging import get_logger
 
@@ -34,20 +36,15 @@ async def send_discord_notification(task, event_type: str) -> None:
     )
 
     try:
-        response = await __import__("asyncio").to_thread(
-            lambda: __import__("urllib.request").request.urlopen(
-                __import__("urllib.request").request.Request(
-                    f"https://discord.com/api/v10/channels/{channel_id}/messages",
-                    data=__import__("json").dumps({"content": content}).encode(),
-                    headers={
-                        "Authorization": f"Bot {token}",
-                        "Content-Type": "application/json",
-                    },
-                    method="POST",
-                ),
-                timeout=10,
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.post(
+                f"https://discord.com/api/v10/channels/{channel_id}/messages",
+                headers={
+                    "Authorization": f"Bot {token}",
+                    "Content-Type": "application/json",
+                },
+                json={"content": content},
             )
-        )
-        logger.info("discord notification sent event=%s channel=%s status=%s", event_type, channel_id, getattr(response, 'status', 'ok'))
+        logger.info("discord notification sent event=%s channel=%s status=%s", event_type, channel_id, response.status_code)
     except Exception as exc:
         logger.warning("discord notification failed event=%s error=%s", event_type, exc)

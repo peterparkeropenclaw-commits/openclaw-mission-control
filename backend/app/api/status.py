@@ -408,8 +408,6 @@ async def get_agent_activity(session: AsyncSession = Depends(get_session)) -> li
         ("ops-director", "Ops Director"),
         ("builder", "Builder"),
         ("reviewer", "Reviewer"),
-        ("coder", "Coder"),
-        ("qa", "QA"),
         ("peter", "Peter"),
     ]
     live = await _heartbeat_lookup(session, "agent")

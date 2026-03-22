@@ -51,14 +51,14 @@ export default function BrainDumpPage() {
   const query = useQuery({
     queryKey: ["brain-dump"],
     queryFn: async () => {
-      return apiFetch<BrainDumpItem[]>("/api/brain-dump");
+      return apiFetch<BrainDumpItem[]>("/api/v1/api/brain-dump");
     },
     refetchInterval: 30_000,
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: { title: string; content: string; category: string; priority: string }) => {
-      return apiFetch("/api/brain-dump", {
+      return apiFetch("/api/v1/api/brain-dump", {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -80,7 +80,7 @@ export default function BrainDumpPage() {
 
   const assignMutation = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: string }) => {
-      return apiFetch(`/api/brain-dump/${id}/assign`, {
+      return apiFetch(`/api/v1/api/brain-dump/${id}/assign`, {
         method: "PATCH",
         body: JSON.stringify({ action }),
       });

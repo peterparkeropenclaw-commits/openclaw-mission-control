@@ -25,6 +25,7 @@ class DispatchTask(QueryModel, table=True):
     error_message: str | None = Field(default=None, sa_column=Column(Text))
     source: str
     trigger: str | None = None
+    archived: bool = Field(default=False, index=True)
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
     assigned_at: datetime | None = None

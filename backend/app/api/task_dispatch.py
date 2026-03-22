@@ -60,15 +60,16 @@ class DispatchTaskRead(BaseModel):
 def getEscalationOwner(task: DispatchTask, classification: str, retryCount: int) -> str:
     owner = task.owner
 
+    # system-level failures always go direct to Peter — check FIRST
+    if classification in ["infra", "config", "auth", "deploy"]:
+        return "peter"
+
     if owner == "builder" or owner == "reviewer" or owner == "qa":
         if classification == "transient" and retryCount == 0:
             return owner
         return "coder"
 
     if owner == "coder":
-        return "peter"
-
-    if classification in ["infra", "config", "auth", "deploy"]:
         return "peter"
 
     return "peter"

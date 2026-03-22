@@ -11,6 +11,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.db.session import get_session
 from app.models.dispatch_task import DispatchTask
+from app.services.discord_notify import send_discord_notification
 
 router = APIRouter(prefix="/api/tasks", tags=["task-dispatch"])
 
@@ -138,6 +139,7 @@ async def _auto_route_failed_task(session: AsyncSession, task: DispatchTask) -> 
             )
             session.add(followup)
             await session.flush()
+            await send_discord_notification(followup, "created")
         print(f"[ops-director] retry created for {task.id} → {followup.id}")
         task.status = "blocked"
         task.result_summary = f"Auto-rerouted to {task.owner}"
@@ -165,6 +167,7 @@ async def _auto_route_failed_task(session: AsyncSession, task: DispatchTask) -> 
             )
             session.add(followup)
             await session.flush()
+            await send_discord_notification(followup, "created")
         print(f"[ops-director] reroute created for {task.id} → {followup.id}")
         task.status = "blocked"
         task.result_summary = "Auto-rerouted to coder"
@@ -191,6 +194,7 @@ async def _auto_route_failed_task(session: AsyncSession, task: DispatchTask) -> 
         )
         session.add(followup)
         await session.flush()
+        await send_discord_notification(followup, "created")
         existing_escalation = followup
     print(f"[ops-director] escalation created for {task.id} → {existing_escalation.id}")
     task.status = "blocked"
@@ -207,6 +211,7 @@ async def create_dispatch_task(payload: DispatchTaskCreate, session: AsyncSessio
     session.add(task)
     await session.commit()
     await session.refresh(task)
+    await send_discord_notification(task, "created")
     return task
 
 
@@ -260,6 +265,7 @@ async def update_dispatch_task(task_id: UUID, payload: DispatchTaskUpdate, sessi
         await _auto_route_failed_task(session, task)
     await session.commit()
     await session.refresh(task)
+    await send_discord_notification(task, "updated")
     return task
 
 
@@ -276,4 +282,5 @@ async def claim_dispatch_task(task_id: UUID, session: AsyncSession = Depends(get
     session.add(task)
     await session.commit()
     await session.refresh(task)
+    await send_discord_notification(task, "claimed")
     return task

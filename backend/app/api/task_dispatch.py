@@ -114,7 +114,7 @@ async def _auto_route_failed_task(session: AsyncSession, task: DispatchTask) -> 
     if existing_retry is not None:
         retry_count = 1
 
-    target_owner = getEscalationOwner(task, classification, retry_count)
+    target_owner = getEscalationOwner(task, task.type, retry_count)
     chain = [f"original task ID: {task.id}"]
     if existing_retry is not None:
         chain.append(f"retry task ID: {existing_retry.id}")

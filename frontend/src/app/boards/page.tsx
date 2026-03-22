@@ -73,6 +73,7 @@ export default function TasksPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterOwner, setFilterOwner] = useState("");
   const [filterPriority, setFilterPriority] = useState("");
+  const [showAllTasks, setShowAllTasks] = useState(false);
 
   // Create form state
   const [showForm, setShowForm] = useState(false);
@@ -87,19 +88,26 @@ export default function TasksPage() {
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState(false);
 
-  const queryKey = ["dispatch-tasks", filterStatus, filterOwner, filterPriority];
+  const queryKey = ["dispatch-tasks", filterStatus, filterOwner, filterPriority, showAllTasks];
 
   const query = useQuery({
     queryKey,
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filterStatus) params.set("status", filterStatus);
-      if (filterOwner) params.set("owner", filterOwner);
-      if (filterPriority) params.set("priority", filterPriority);
-      
+      if (!showAllTasks) {
+        if (filterStatus) params.set("status", filterStatus);
+        if (filterOwner) params.set("owner", filterOwner);
+        if (filterPriority) params.set("priority", filterPriority);
+      }
+
       const data = await apiFetch<TaskListResponse>(params.toString() ? `/api/v1/api/tasks?${params.toString()}` : "/api/v1/api/tasks");
-      if (Array.isArray(data)) return data;
-      return (data as { items?: DispatchTask[]; tasks?: DispatchTask[] }).items ?? (data as { tasks?: DispatchTask[] }).tasks ?? [];
+      const items = Array.isArray(data)
+        ? data
+        : (data as { items?: DispatchTask[]; tasks?: DispatchTask[] }).items ?? (data as { tasks?: DispatchTask[] }).tasks ?? [];
+
+      return showAllTasks
+        ? [...items].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        : items;
     },
     refetchInterval: 15_000,
   });
@@ -241,25 +249,41 @@ export default function TasksPage() {
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-3 items-center">
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={selectCls}>
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={selectCls} disabled={showAllTasks}>
           <option value="">All statuses</option>
           {STATUSES.map((s) => <option key={s}>{s.replace("_", " ")}</option>)}
         </select>
-        <select value={filterOwner} onChange={(e) => setFilterOwner(e.target.value)} className={selectCls}>
+        <select value={filterOwner} onChange={(e) => setFilterOwner(e.target.value)} className={selectCls} disabled={showAllTasks}>
           <option value="">All owners</option>
           {OWNERS.map((o) => <option key={o} value={o}>{o.replace("_", " ")}</option>)}
         </select>
-        <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className={selectCls}>
+        <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className={selectCls} disabled={showAllTasks}>
           <option value="">All priorities</option>
           {PRIORITIES.map((p) => <option key={p}>{p}</option>)}
         </select>
+        <button
+          onClick={() => {
+            setShowAllTasks((prev) => {
+              const next = !prev;
+              if (next) {
+                setFilterStatus("");
+                setFilterOwner("");
+                setFilterPriority("");
+              }
+              return next;
+            });
+          }}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium ${showAllTasks ? "bg-slate-900 text-white" : "border border-slate-200 text-slate-700 hover:bg-slate-100"}`}
+        >
+          Show All Tasks
+        </button>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ["dispatch-tasks"] })}
           className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
         >
           ↻ Refresh
         </button>
-        {(filterStatus || filterOwner || filterPriority) && (
+        {!showAllTasks && (filterStatus || filterOwner || filterPriority) && (
           <button
             onClick={() => { setFilterStatus(""); setFilterOwner(""); setFilterPriority(""); }}
             className="text-xs text-slate-400 hover:text-slate-600 underline"

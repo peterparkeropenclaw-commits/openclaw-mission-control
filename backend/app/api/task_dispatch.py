@@ -52,6 +52,7 @@ class DispatchTaskRead(BaseModel):
     error_message: str | None
     source: str
     trigger: str | None
+    archived: bool
     created_at: datetime
     updated_at: datetime
     assigned_at: datetime | None
@@ -222,6 +223,7 @@ async def list_dispatch_tasks(
     priority: TaskPriority | None = Query(default=None),
     source: TaskSource | None = Query(default=None),
     trigger: str | None = Query(default=None),
+    include_archived: bool = Query(default=False),
     limit: int | None = Query(default=None, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
 ) -> list[DispatchTask]:
@@ -232,6 +234,8 @@ async def list_dispatch_tasks(
         else_=3,
     )
     stmt = select(DispatchTask)
+    if not include_archived:
+        stmt = stmt.where(DispatchTask.archived == False)
     if status is not None:
         stmt = stmt.where(DispatchTask.status == status)
     if owner is not None:
